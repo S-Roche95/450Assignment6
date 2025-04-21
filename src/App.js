@@ -112,34 +112,29 @@ class StreamGraph extends Component {
   }
 
   renderStreamGraph() {
-    // Clear any existing elements
     d3.select(this.svgRef.current).selectAll("*").remove();
     d3.select(this.legendRef.current).selectAll("*").remove();
 
     const data = this.state.data;
     if (!data || data.length === 0) return;
 
-    // Dimensions
     const width = 800;
     const height = 500;
     const margin = { top: 20, right: 20, bottom: 30, left: 50 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
-    // Get unique dates and models
     const dates = [...new Set(data.map(d => d.date))];
     const models = [...new Set(data.map(d => d.model))];
     
-    // Custom color scheme matching the image
     const colorMap = {
-      'LLaMA-3.1': '#ff7f00', // Orange
-      'Claude': '#984ea3',    // Purple
-      'PaLM-2': '#4daf4a',    // Green
-      'Gemini': '#377eb8',    // Blue
-      'GPT-4': '#e41a1c'      // Red
+      'LLaMA-3.1': '#ff7f00', 
+      'Claude': '#984ea3',    
+      'PaLM-2': '#4daf4a',    
+      'Gemini': '#377eb8',    
+      'GPT-4': '#e41a1c'      
     };
     
-    // Create color scale using custom colors or fallback to default colors
     const colorScale = d => colorMap[d] || d3.schemeCategory10[models.indexOf(d) % 10];
 
     // Format data for stream graph
@@ -152,7 +147,6 @@ class StreamGraph extends Component {
       return obj;
     });
 
-    // Create SVG
     const svg = d3.select(this.svgRef.current)
       .attr("width", width)
       .attr("height", height);
@@ -160,12 +154,10 @@ class StreamGraph extends Component {
     const g = svg.append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    // Create x scale
     const xScale = d3.scalePoint()
       .domain(dates)
       .range([0, innerWidth]);
 
-    // Stack the data - ensure order matches the image (bottom to top: red, blue, green, purple, orange)
     const desiredOrder = ['GPT-4', 'Gemini', 'PaLM-2', 'Claude', 'LLaMA-3.1'];
     const orderedModels = models.sort((a, b) => {
       const indexA = desiredOrder.indexOf(a);
@@ -176,11 +168,10 @@ class StreamGraph extends Component {
     const stack = d3.stack()
       .keys(orderedModels)
       .offset(d3.stackOffsetWiggle)
-      .order(d3.stackOrderNone); // Use explicit order instead of inside-out
+      .order(d3.stackOrderNone);
 
     const stackedData = stack(formattedData);
 
-    // Create y scale
     const yScale = d3.scaleLinear()
       .domain([
         d3.min(stackedData, layer => d3.min(layer, d => d[0])),
@@ -188,14 +179,12 @@ class StreamGraph extends Component {
       ])
       .range([innerHeight, 0]);
 
-    // Create area generator
     const area = d3.area()
       .x((d, i) => xScale(formattedData[i].date))
       .y0(d => yScale(d[0]))
       .y1(d => yScale(d[1]))
       .curve(d3.curveBasis);
 
-    // Draw stream paths
     g.selectAll(".stream")
       .data(stackedData)
       .enter()
@@ -208,7 +197,6 @@ class StreamGraph extends Component {
         const model = d.key;
         const [mouseX, mouseY] = d3.pointer(event);
         
-        // Find closest date point to mouse position
         let closestDateIndex = Math.round((mouseX / innerWidth) * (dates.length - 1));
         closestDateIndex = Math.max(0, Math.min(closestDateIndex, dates.length - 1));
         
@@ -236,17 +224,14 @@ class StreamGraph extends Component {
         }
       });
 
-    // Add x-axis
     g.append("g")
       .attr("transform", `translate(0,${innerHeight})`)
       .call(d3.axisBottom(xScale));
 
-    // Legend
     const legendSvg = d3.select(this.legendRef.current)
       .attr("width", 200)
       .attr("height", models.length * 30);
 
-    // Use the same order as in the streamgraph for the legend
     const legendItems = legendSvg.selectAll(".legend")
       .data(desiredOrder.filter(m => models.includes(m)))
       .enter()
@@ -278,26 +263,22 @@ class StreamGraph extends Component {
     const model = tooltipData.model;
     const values = tooltipData.values;
     
-    // Tooltip dimensions
     const width = 200;
     const height = 150;
     const margin = { top: 20, right: 10, bottom: 30, left: 40 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
     
-    // Custom color scheme matching the image
     const colorMap = {
-      'LLaMA-3.1': '#FF6C00', // Orange
-      'Claude': '#9B4FB2',    // Purple
-      'PaLM-2': '#4CAF50',    // Green
-      'Gemini': '#2196F3',    // Blue
-      'GPT-4': '#F44336'      // Red
+      'LLaMA-3.1': '#FF6C00',
+      'Claude': '#9B4FB2',   
+      'PaLM-2': '#4CAF50',   
+      'Gemini': '#2196F3',   
+      'GPT-4': '#F44336'     
     };
-    
-    // Get color for the current model
+      
     const modelColor = colorMap[model] || d3.schemeCategory10[[...new Set(this.state.data.map(d => d.model))].indexOf(model) % 10];
-    
-    // Create SVG
+  
     const svg = tooltipDiv.append("svg")
       .attr("width", width)
       .attr("height", height);
@@ -305,7 +286,6 @@ class StreamGraph extends Component {
     const g = svg.append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
     
-    // Create scales
     const xScale = d3.scaleBand()
       .domain(values.map(d => d.date))
       .range([0, innerWidth])
@@ -315,7 +295,6 @@ class StreamGraph extends Component {
       .domain([0, d3.max(values, d => d.value)])
       .range([innerHeight, 0]);
     
-    // Draw bars
     g.selectAll(".bar")
       .data(values)
       .enter()
@@ -327,7 +306,6 @@ class StreamGraph extends Component {
       .attr("height", d => innerHeight - yScale(d.value))
       .attr("fill", modelColor);
     
-    // Add x-axis
     g.append("g")
       .attr("transform", `translate(0,${innerHeight})`)
       .call(d3.axisBottom(xScale))
@@ -336,18 +314,15 @@ class StreamGraph extends Component {
       .style("text-anchor", "end")
       .style("font-size", "8px");
     
-    // Add y-axis
     g.append("g")
       .call(d3.axisLeft(yScale));
     
-    // Add title
     g.append("text")
       .attr("x", innerWidth / 2)
       .attr("y", -5)
       .attr("text-anchor", "middle")
       .text(`${model} Usage`);
 
-    // Set initial tooltip position
     this.updateTooltipPosition();
   }
 
